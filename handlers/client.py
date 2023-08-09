@@ -7,7 +7,7 @@ from create_bot import dp, bot
 from keyboards.client_ikb import inkb_teams, inkb_teams_three, inkb_numbers
 from keyboards.client_kb import kb_client
 from aiogram.dispatcher.filters import Text
-from pars.news import pars_last_club_news, pars_last_three_news #тут происходит задвоение
+from pars.news import pars_last_club_news, pars_last_three_news, pars_news_href #тут происходит задвоение
 # from pars import news
 from data_base import sqlite_db
 
@@ -40,13 +40,27 @@ async def team_three_news(callback: types.CallbackQuery):
     :param callback:
     :return:
     """
-    lst = pars_last_three_news(str(callback.data.split("_")[1]))
+    print("team_three_news")
+    d = pars_last_three_news(str(callback.data.split("_")[1]))
+    print(type(d))
 
-    for row in lst:
-        print(row)
-
-    message_for_user = f"{lst[0]['number']}.\t{lst[0]['news']}" + f"\n\n{lst[1]['number']}.\t{lst[1]['news']}" + f"\n\n{lst[2]['number']}.\t{lst[2]['news']}"
+    message_for_user = f"{d['1']['number']}.\t{d['1']['news']}" + f"\n\n{d['2']['number']}.\t{d['2']['news']}" + f"\n\n{d['3']['number']}.\t{d['3']['news']}"
     await callback.message.answer(message_for_user, reply_markup=inkb_numbers)
+
+
+async def any_of_three_news(callback: types.CallbackQuery):
+    """
+    Функция запускает функцию парсинга новости по номеру ссылки. И выводит результат в сообщение
+    :param callback:
+    :return:
+    """
+    d = pars_news_href(str(callback.data.split("_")[1]))
+    message_for_user = f"{d['news']}\n\n{d['date']} {d['time']}"
+    if d['photo'] == None:
+        await callback.message.answer(message_for_user, reply_markup=kb_client)
+    else:
+        await callback.message.answer_photo(photo=d['photo'])
+        await callback.message.answer(message_for_user, reply_markup=kb_client)
 
 
 def register_handlers_client(dp: Dispatcher):
@@ -55,3 +69,4 @@ def register_handlers_client(dp: Dispatcher):
     dp.register_message_handler(command_three_news, commands=["three_news"])
     dp.register_callback_query_handler(team_last_news, Text(startswith="team_"))
     dp.register_callback_query_handler(team_three_news, Text(startswith="three_"))
+    dp.register_callback_query_handler(any_of_three_news, Text(startswith="number_"))
